@@ -1,0 +1,52 @@
+objectives: 
+  target_layer: container # node or container or process. 
+  target_info:
+    name:
+      - hopeful_meninsky
+    label: []
+    pid: []
+  
+files:
+  enable: true
+  mode: block
+  allow:
+    - /
+  deny:
+    - /proc
+    - /sys
+
+capabilities:
+  enable: true
+  mode: monitor
+  allow:
+    - CAP_CHOWN
+    - CAP_DAC_OVERRIDE
+    - CAP_FSETID
+    - CAP_FOWNER
+    - CAP_MKNOD
+    - CAP_NET_RAW
+    - CAP_SETGID
+    - CAP_SETUID
+    - CAP_SETPCAP
+    - CAP_NET_BIND_SERVICE
+    - CAP_SYS_CHROOT
+    - CAP_KILL
+    - CAP_AUDIT_WRITE
+  deny:
+    - CAP_SYS_ADMIN
+    - CAP_BPF
+    - CAP_DAC_READ_SEARCH
+
+bpf:
+  enable: true
+  mode: monitor
+
+log:
+  # Log format(json or text). Default: json
+  format: json
+  # Specified log file location. Default: stdout
+  # output: ./cordon.log.json
+  # Maximum size to rotate (MB)
+  # max_size: 100
+  # Period for which logs are kept
+  # max_age: 365
