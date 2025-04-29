@@ -1,45 +1,32 @@
 # Install
 
-## 0. 检查BPF、LSM环境
+## 0. Check the BPF and LSM environments
 ```shell
 grep CONFIG_BPF /boot/config-5.19.0-46-generic
 grep CONFIG_LSM /boot/config-5.19.0-46-generic
-# 当前内核CONFIG_LSM配置中无bpf，需重新编译，内核源码在/usr/src
 cp -v /boot/config-5.19.0-46-generic .config
 make menuconfig
 cat .config|grep CONFIG_LSM
-# 在CONFIG_LSM中添加bpf配置：CONFIG_LSM="landlock,lockdown,yama,integrity,apparmor,bpf"
+# If there is no display ‘bpf’, please add in the CONFIG_LSM BPF configuration: CONFIG_LSM = "landlock lockdown, yama, integrity, apparmor, bpf."
 
-# 若编译期间磁盘空间不够
-df -h #查看磁盘空间使用情况
-lsblk #查看块设备信息
-growpart /dev/sda 3 #扩容sda下第3块磁盘
-resize2fs /dev/sda3 #将磁盘挂载sda3
-# 将物理体积 (pv) 增加到最大大小
+# If there is not enough space on disk during compilation, do the following:
+df -h
+lsblk
+growpart /dev/sda 3 
+resize2fs /dev/sda3 
 pvresize /dev/sda3
-# 将逻辑卷 (LV) 扩展到最大大小以匹配
 lvresize -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv
-# 扩展文件系统本身
 resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
-lvextend -r -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv   #按百分比扩容
+lvextend -r -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv   
 
+# make the changes work
 make
 make modules_install 
 make install
 gedit /etc/default/grub
-# 注释grub_hidden配置。把grub_timeout_style=hidden给删除或者注释掉，把grub_cmdline_linux_default修改为text。
-# 使修改生效
 update-grub
-# 设置成功后重启
-# 进入advanced选择对应的内核版本(5.19.0)启动
+# Select the kernel with the modified configuration to start
 uname -mrs 
-
-# 或者可以通过在引导加载程序配置中添加内核的命令行参数来CONFIG_LSM启用bpf
-# vim /boot/config-5.19.0-46-generic
-# 重启后查看
-# 同时修改/etc/default/grub中GRUB_CMDLINE_LINUX_DEFAULT="lsm=bpf,capability"
-
-# 解决Ubuntu历史版本更换镜像源的问题：https://blog.csdn.net/weixin_45450338/article/details/134677240
 ```
 
 ## 1. install go 1.20
@@ -53,7 +40,6 @@ source ~/.bashrc
 go version
 
 wget https://golang.google.cn/dl/go1.20.3.linux-amd64.tar.gz
-# 解压文件
 tar xfz go1.20.3.linux-amd64.tar.gz -C /usr/local
 cat <<EOF >> /etc/profile
 export GOROOT=/usr/local/go
@@ -73,21 +59,13 @@ go version
 
 ## 2. install dependent libraries
 ```shell
-# 1.go设置代理
 go env -w GO111MODULE=on
 go env -w GOPROXY=direct
 go env -w GOSUMDB=off
 go env -w GOPROXY=https://goproxy.cn,direct
 
-# 2.安装依赖库
 go mod init cordon
 go mod tidy
-# 或者如下：
-go get github.com/urfave/cli/v2@v2.3.0  #实现命令行参数的解析
-go get gopkg.in/yaml.v2@v2.4.0  #将YAML数据格式编码和解码为Go语言数据结构
-go get github.com/sirupsen/logrus@v1.8.1  #结构化日志库
-
-
 ```
 
 ## 3. run
@@ -98,12 +76,12 @@ make build
 docker run -d -p 8080:80 --name my-nginx nginx:latest
 docker exec -it my-nginx /bin/bash
 ./cordon --config policy/default.yaml
-# docker bash exit后重新进入
-# 触发文件访问：cat /etc/shadow
+# docker bash exits and then re-enters
+# Trigger file access: cat /etc/shadow
 # go run main.go
 ```
 
-## 4、触发bpf审计
+## 4、Trigger the bpf audit
 git clone https://github.com/kinvolk/bpf-exercises.git
 cd bpf-exercises
 make container
@@ -113,11 +91,10 @@ docker exec -it 02 /bin/bash
 echo $$
 go run main.go <pid>...
 
-## 5、触发capable函数
+## 5、Trigger the capable function
 docker run -d -p 8080:80 --name my-nginx nginx:latest
 docker exec -it my-nginx /bin/bash
 chmod 777 /etc/passwd
 chown root:root /etc/passwd
 mount -t tmpfs none /mnt
 ifconfig eth0 down
-
